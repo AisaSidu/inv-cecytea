@@ -1,16 +1,24 @@
 import { Link } from 'react-router-dom'
 
-export function NotFoundPage() {
+function NotFoundPage() {
   return (
-    <section className="page not-found">
-      <header className="page-header">
-        <p>Error 404</p>
-        <h1>Pagina no encontrada</h1>
-      </header>
+    <section className="placeholder-page">
+      <div className="placeholder-icon">?</div>
 
-      <Link className="button-link" to="/">
-        Volver al dashboard
+      <p className="eyebrow">Error 404</p>
+
+      <h2>Esta pantalla no existe.</h2>
+
+      <p className="placeholder-description">
+        Puede que el enlace esté mal escrito o que el código QR apunte a una
+        estación que ya no existe.
+      </p>
+
+      <Link to="/" className="primary-button">
+        Ir al inicio
       </Link>
     </section>
   )
 }
+
+export default NotFoundPage

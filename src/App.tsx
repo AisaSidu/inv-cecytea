@@ -1,121 +1,76 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Route, Routes } from 'react-router-dom'
+import AppLayout from './layouts/AppLayout'
+import PlaceholderPage from './components/PlaceholderPage'
+import DashboardPage from './pages/DashboardPage'
+import NotFoundPage from './pages/NotFoundPage'
+import StationDetailPage from './pages/StationDetailPage'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
 
-      <div className="ticks"></div>
+        <Route
+          path="estaciones"
+          element={
+            <PlaceholderPage
+              title="Estaciones de trabajo"
+              description="Aquí se consultarán, crearán y administrarán las estaciones de cada laboratorio."
+              nextStep="El siguiente paso será registrar laboratorios, estaciones, CPU y monitores."
+            />
+          }
+        />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <Route path="estaciones/:stationId" element={<StationDetailPage />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <Route
+          path="escanear"
+          element={
+            <PlaceholderPage
+              title="Escanear código QR"
+              description="Desde aquí se abrirá la cámara del dispositivo para consultar rápidamente una estación o equipo."
+              nextStep="Después integraremos el lector QR y las rutas directas a cada estación."
+            />
+          }
+        />
+
+        <Route
+          path="movimientos"
+          element={
+            <PlaceholderPage
+              title="Movimientos"
+              description="Aquí quedará el historial de cambios de ubicación, reemplazos y modificaciones de los equipos."
+              nextStep="Más adelante conectaremos esta vista con la tabla de movimientos en Supabase."
+            />
+          }
+        />
+
+        <Route
+          path="reportes"
+          element={
+            <PlaceholderPage
+              title="Reportes"
+              description="Desde este módulo se generarán inventarios y reportes descargables en PDF o Excel."
+              nextStep="Los archivos se generarán al momento; no será necesario guardarlos en la base de datos."
+            />
+          }
+        />
+
+        <Route
+          path="configuracion"
+          element={
+            <PlaceholderPage
+              title="Configuración"
+              description="Aquí vivirán los catálogos de laboratorios, usuarios, roles y opciones generales del sistema."
+              nextStep="Este módulo se habilitará cuando agreguemos autenticación y permisos."
+            />
+          }
+        />
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   )
 }
 
