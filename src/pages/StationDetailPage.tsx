@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useAuth } from '../features/auth/useAuth'
 import { supabase } from '../lib/supabase'
 
 type StationStatus = 'active' | 'inactive' | 'maintenance'
+type AssetType = 'cpu' | 'monitor'
+type AssetStatus = 'available' | 'assigned' | 'maintenance' | 'damaged' | 'retired' | 'lost'
 
 type StationDetail = {
   id: string
@@ -23,10 +26,55 @@ type StationDetailRow = Omit<StationDetail, 'laboratories'> & {
     | StationDetail['laboratories']
 }
 
+type Asset = {
+  id: string
+  asset_code: string
+  asset_type: AssetType
+  brand: string | null
+  model: string | null
+  serial_number: string | null
+  status: AssetStatus
+  notes: string | null
+}
+
+type Movement = {
+  id: string
+  movement_type: string
+  reason: string | null
+  notes: string | null
+  created_at: string
+  assets: {
+    asset_code: string
+    asset_type: AssetType
+  } | null
+}
+
+type MovementRow = Omit<Movement, 'assets'> & {
+  assets: Movement['assets'][] | Movement['assets']
+}
+
 const statusLabels: Record<StationStatus, string> = {
   active: 'Activa',
   inactive: 'Inactiva',
   maintenance: 'Mantenimiento',
+}
+
+const assetTypeLabels: Record<AssetType, string> = {
+  cpu: 'CPU',
+  monitor: 'Monitor',
+}
+
+const assetStatusLabels: Record<AssetStatus, string> = {
+  available: 'Disponible',
+  assigned: 'Asignado',
+  maintenance: 'Mantenimiento',
+  damaged: 'Dañado',
+  retired: 'Retirado',
+  lost: 'Perdido',
+}
+
+function normalizeCode(value: string) {
+  return value.trim().toUpperCase()
 }
 
 function mapStationDetail(row: StationDetailRow): StationDetail {
@@ -40,41 +88,107 @@ function mapStationDetail(row: StationDetailRow): StationDetail {
   }
 }
 
+function mapMovement(row: MovementRow): Movement {
+  const asset = Array.isArray(row.assets)
+    ? row.assets[0] ?? null
+    : row.assets
+
+  return {
+    ...row,
+    assets: asset,
+  }
+}
+
 function StationDetailPage() {
   const { stationId } = useParams()
+  const { user } = useAuth()
   const [station, setStation] = useState<StationDetail | null>(null)
+  const [assets, setAssets] = useState<Asset[]>([])
+  const [movements, setMovements] = useState<Movement[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSavingAsset, setIsSavingAsset] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [formMessage, setFormMessage] = useState('')
+
+  const [assetType, setAssetType] = useState<AssetType>('cpu')
+  const [assetCode, setAssetCode] = useState('CPU-001')
+  const [brand, setBrand] = useState('')
+  const [model, setModel] = useState('')
+  const [serialNumber, setSerialNumber] = useState('')
+  const [assetNotes, setAssetNotes] = useState('')
+
+  async function fetchStationBundle(nextStationId: string) {
+    const [stationResult, assetsResult, movementsResult] = await Promise.all([
+      supabase
+        .from('stations')
+        .select('id, code, location_label, notes, status, laboratories(code, name, building)')
+        .eq('id', nextStationId)
+        .single(),
+      supabase
+        .from('assets')
+        .select('id, asset_code, asset_type, brand, model, serial_number, status, notes')
+        .eq('station_id', nextStationId)
+        .order('asset_type', { ascending: true }),
+      supabase
+        .from('asset_movements')
+        .select('id, movement_type, reason, notes, created_at, assets(asset_code, asset_type)')
+        .eq('to_station_id', nextStationId)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ])
+
+    return { stationResult, assetsResult, movementsResult }
+  }
+
+  async function loadStationBundle() {
+    if (!stationId) return
+
+    setIsLoading(true)
+    setLoadError('')
+
+    const { stationResult, assetsResult, movementsResult } =
+      await fetchStationBundle(stationId)
+
+    if (stationResult.error || !stationResult.data || assetsResult.error) {
+      setLoadError('No fue posible cargar esta estación.')
+      setIsLoading(false)
+      return
+    }
+
+    setStation(mapStationDetail(stationResult.data as unknown as StationDetailRow))
+    setAssets((assetsResult.data ?? []) as Asset[])
+    setMovements(((movementsResult.data ?? []) as unknown as MovementRow[]).map(mapMovement))
+    setIsLoading(false)
+  }
 
   useEffect(() => {
     let isMounted = true
 
-    async function loadStation() {
+    async function loadInitialData() {
       if (!stationId) {
-        setIsLoading(false)
         setLoadError('No se recibió el identificador de la estación.')
+        setIsLoading(false)
         return
       }
 
-      const { data, error } = await supabase
-        .from('stations')
-        .select('id, code, location_label, notes, status, laboratories(code, name, building)')
-        .eq('id', stationId)
-        .single()
+      const { stationResult, assetsResult, movementsResult } =
+        await fetchStationBundle(stationId)
 
       if (!isMounted) return
 
-      if (error || !data) {
+      if (stationResult.error || !stationResult.data || assetsResult.error) {
         setLoadError('No fue posible cargar esta estación.')
         setIsLoading(false)
         return
       }
 
-      setStation(mapStationDetail(data as unknown as StationDetailRow))
+      setStation(mapStationDetail(stationResult.data as unknown as StationDetailRow))
+      setAssets((assetsResult.data ?? []) as Asset[])
+      setMovements(((movementsResult.data ?? []) as unknown as MovementRow[]).map(mapMovement))
       setIsLoading(false)
     }
 
-    void loadStation()
+    void loadInitialData()
 
     return () => {
       isMounted = false
@@ -85,6 +199,86 @@ function StationDetailPage() {
     if (!station) return ''
     return `${window.location.origin}/estaciones/${station.id}`
   }, [station])
+
+  const assignedAssetsByType = useMemo(
+    () =>
+      assets.reduce<Partial<Record<AssetType, Asset>>>((current, asset) => {
+        current[asset.asset_type] = asset
+        return current
+      }, {}),
+    [assets],
+  )
+
+  async function handleCreateAsset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    if (!stationId || !station) {
+      setFormMessage('No hay una estación válida para asignar el equipo.')
+      return
+    }
+
+    if (assignedAssetsByType[assetType]) {
+      setFormMessage(`Esta estación ya tiene ${assetTypeLabels[assetType]} asignado.`)
+      return
+    }
+
+    setIsSavingAsset(true)
+
+    const { data: createdAsset, error: assetError } = await supabase
+      .from('assets')
+      .insert({
+        asset_code: normalizeCode(assetCode),
+        asset_type: assetType,
+        brand: brand.trim() || null,
+        model: model.trim() || null,
+        serial_number: serialNumber.trim() || null,
+        station_id: stationId,
+        status: 'assigned',
+        notes: assetNotes.trim() || null,
+      })
+      .select('id, asset_code, asset_type, brand, model, serial_number, status, notes')
+      .single()
+
+    if (assetError || !createdAsset) {
+      setFormMessage('No fue posible registrar el equipo. Revisa permisos, código o serie duplicada.')
+      setIsSavingAsset(false)
+      return
+    }
+
+    const { error: movementError } = await supabase
+      .from('asset_movements')
+      .insert({
+        asset_id: createdAsset.id,
+        movement_type: 'assignment',
+        to_station_id: stationId,
+        previous_status: 'available',
+        new_status: 'assigned',
+        reason: 'Asignación inicial a estación',
+        notes: `Asignado a ${station.code}`,
+        performed_by: user?.id ?? null,
+      })
+
+    setAssets((current) =>
+      [...current, createdAsset as Asset].sort((a, b) =>
+        a.asset_type.localeCompare(b.asset_type),
+      ),
+    )
+    setBrand('')
+    setModel('')
+    setSerialNumber('')
+    setAssetNotes('')
+    setAssetCode(assetType === 'cpu' ? 'MON-001' : 'CPU-001')
+    setAssetType(assetType === 'cpu' ? 'monitor' : 'cpu')
+    setFormMessage(
+      movementError
+        ? 'Equipo registrado, pero no se pudo guardar el movimiento.'
+        : 'Equipo registrado y asignado correctamente.',
+    )
+    setIsSavingAsset(false)
+
+    void loadStationBundle()
+  }
 
   if (isLoading) {
     return (
@@ -126,6 +320,12 @@ function StationDetailPage() {
           Volver
         </Link>
       </div>
+
+      {formMessage && (
+        <div className="inline-message" role="status">
+          {formMessage}
+        </div>
+      )}
 
       <div className="detail-grid">
         <article className="panel">
@@ -172,20 +372,164 @@ function StationDetailPage() {
         </article>
       </div>
 
-      <article className="panel pending-panel">
-        <div className="panel-heading">
-          <p className="eyebrow">Siguiente bloque</p>
-          <h3>Equipos por estación</h3>
-        </div>
+      <div className="equipment-grid">
+        {(['cpu', 'monitor'] as AssetType[]).map((type) => {
+          const asset = assignedAssetsByType[type]
 
-        <p>
-          Aquí conectaremos CPU, monitor y checklist de periféricos. La base ya
-          está lista para guardar esa relación sin perder qué pertenece a cada
-          puesto.
-        </p>
+          return (
+            <article key={type} className="equipment-card">
+              <div className="equipment-card-header">
+                <div>
+                  <p className="eyebrow">{assetTypeLabels[type]}</p>
+                  <h3>{asset?.asset_code ?? 'Sin asignar'}</h3>
+                </div>
+                <span className={`status-pill ${asset ? 'status-active' : 'status-inactive'}`}>
+                  {asset ? assetStatusLabels[asset.status] : 'Pendiente'}
+                </span>
+              </div>
 
-        {station.notes && <p className="station-notes">{station.notes}</p>}
-      </article>
+              {asset ? (
+                <dl className="asset-list">
+                  <div>
+                    <dt>Marca</dt>
+                    <dd>{asset.brand ?? 'Sin dato'}</dd>
+                  </div>
+                  <div>
+                    <dt>Modelo</dt>
+                    <dd>{asset.model ?? 'Sin dato'}</dd>
+                  </div>
+                  <div>
+                    <dt>Serie</dt>
+                    <dd>{asset.serial_number ?? 'Sin dato'}</dd>
+                  </div>
+                  {asset.notes && (
+                    <div>
+                      <dt>Notas</dt>
+                      <dd>{asset.notes}</dd>
+                    </div>
+                  )}
+                </dl>
+              ) : (
+                <p className="equipment-empty">
+                  Registra este equipo para completar la estación.
+                </p>
+              )}
+            </article>
+          )
+        })}
+      </div>
+
+      <div className="station-operations-grid">
+        <form className="data-form" onSubmit={handleCreateAsset}>
+          <div className="form-heading">
+            <p className="eyebrow">Asignación</p>
+            <h3>Registrar CPU o monitor</h3>
+          </div>
+
+          <label>
+            Tipo de equipo
+            <select
+              value={assetType}
+              onChange={(event) => {
+                const nextType = event.target.value as AssetType
+                setAssetType(nextType)
+                setAssetCode(nextType === 'cpu' ? 'CPU-001' : 'MON-001')
+              }}
+            >
+              <option value="cpu" disabled={Boolean(assignedAssetsByType.cpu)}>
+                CPU
+              </option>
+              <option value="monitor" disabled={Boolean(assignedAssetsByType.monitor)}>
+                Monitor
+              </option>
+            </select>
+          </label>
+
+          <label>
+            Código de activo
+            <input
+              value={assetCode}
+              onChange={(event) => setAssetCode(event.target.value)}
+              placeholder={assetType === 'cpu' ? 'CPU-001' : 'MON-001'}
+              required
+            />
+          </label>
+
+          <div className="form-row">
+            <label>
+              Marca
+              <input
+                value={brand}
+                onChange={(event) => setBrand(event.target.value)}
+                placeholder="Dell, HP, Lenovo"
+              />
+            </label>
+
+            <label>
+              Modelo
+              <input
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                placeholder="OptiPlex, ThinkCentre"
+              />
+            </label>
+          </div>
+
+          <label>
+            Número de serie
+            <input
+              value={serialNumber}
+              onChange={(event) => setSerialNumber(event.target.value)}
+              placeholder="Serie del fabricante"
+            />
+          </label>
+
+          <label>
+            Notas
+            <textarea
+              value={assetNotes}
+              onChange={(event) => setAssetNotes(event.target.value)}
+              placeholder="Condición física, accesorios incluidos o detalles de red"
+              rows={3}
+            />
+          </label>
+
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={isSavingAsset || Boolean(assignedAssetsByType.cpu && assignedAssetsByType.monitor)}
+          >
+            {isSavingAsset ? 'Guardando...' : 'Asignar equipo'}
+          </button>
+        </form>
+
+        <article className="panel">
+          <div className="panel-heading">
+            <p className="eyebrow">Historial reciente</p>
+            <h3>Movimientos de asignación</h3>
+          </div>
+
+          {movements.length === 0 ? (
+            <div className="empty-list">
+              <strong>Sin movimientos todavía</strong>
+              <p>Al asignar CPU o monitor aparecerá el rastro inicial.</p>
+            </div>
+          ) : (
+            <div className="movement-list">
+              {movements.map((movement) => (
+                <div key={movement.id} className="movement-row">
+                  <strong>
+                    {movement.assets?.asset_code ?? 'Activo'} ·{' '}
+                    {movement.assets ? assetTypeLabels[movement.assets.asset_type] : 'Equipo'}
+                  </strong>
+                  <span>{new Date(movement.created_at).toLocaleString()}</span>
+                  <p>{movement.reason ?? movement.notes ?? movement.movement_type}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+      </div>
     </section>
   )
 }
