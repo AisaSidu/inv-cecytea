@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import StationDetailPage from './pages/StationDetailPage'
+import StationsPage from './pages/StationsPage'
 
 function App() {
   return (
@@ -23,13 +24,7 @@ function App() {
 
         <Route
           path="estaciones"
-          element={
-            <PlaceholderPage
-              title="Estaciones de trabajo"
-              description="Aquí se consultarán, crearán y administrarán las estaciones de cada laboratorio."
-              nextStep="El siguiente paso será registrar laboratorios, estaciones, CPU y monitores."
-            />
-          }
+          element={<StationsPage />}
         />
 
         <Route
