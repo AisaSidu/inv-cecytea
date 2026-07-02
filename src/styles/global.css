@@ -950,29 +950,95 @@ h1 {
   font-size: 0.9rem;
 }
 
-.qr-preview {
+.qr-card {
   display: grid;
-  width: 150px;
-  height: 150px;
+  align-content: start;
+}
+
+.qr-print-area {
+  margin-top: 1rem;
+}
+
+.qr-label {
+  display: grid;
+  gap: 0.9rem;
+  width: min(100%, 260px);
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.95rem;
+  background: #ffffff;
+}
+
+.qr-label-heading strong,
+.qr-label-heading span {
+  display: block;
+}
+
+.qr-label-heading strong {
+  color: #0f172a;
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+}
+
+.qr-label-heading span {
+  margin-top: 0.15rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.qr-image-frame {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
   place-items: center;
-  margin-top: 1.2rem;
-  border: 1px dashed #94a3b8;
-  border-radius: 0.9rem;
-  color: #0f766e;
-  background:
-    linear-gradient(90deg, rgba(15, 118, 110, 0.12) 1px, transparent 1px),
-    linear-gradient(rgba(15, 118, 110, 0.12) 1px, transparent 1px),
-    #f0fdfa;
-  background-size: 18px 18px;
-  font-weight: 900;
+  border-radius: 0.7rem;
+  background: #f8fafc;
+}
+
+.qr-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qr-image-frame span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 750;
 }
 
 .qr-url {
   overflow-wrap: anywhere;
-  margin-top: 1rem;
   color: #64748b;
   font-size: 0.8rem;
   line-height: 1.45;
+}
+
+.qr-label p {
+  overflow-wrap: anywhere;
+  color: #64748b;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.qr-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.qr-actions .primary-button {
+  border: 0;
+  cursor: pointer;
+}
+
+.qr-actions .primary-button:disabled,
+.qr-actions .secondary-button[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .pending-panel {
@@ -1186,5 +1252,36 @@ h1 {
   .detail-list div {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-print-area,
+  .qr-print-area * {
+    visibility: visible;
+  }
+
+  .qr-print-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin: 0;
+  }
+
+  .qr-label {
+    width: 70mm;
+    padding: 5mm;
+    border: 1px solid #111827;
+    border-radius: 0;
+    box-shadow: none;
   }
 }

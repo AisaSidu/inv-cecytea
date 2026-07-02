@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import StationQrCard from '../components/qr/StationQrCard'
 import { useAuth } from '../features/auth/useAuth'
 import { supabase } from '../lib/supabase'
 
@@ -466,18 +467,11 @@ function StationDetailPage() {
           </dl>
         </article>
 
-        <article className="panel">
-          <div className="panel-heading">
-            <p className="eyebrow">QR</p>
-            <h3>Ruta de consulta</h3>
-          </div>
-
-          <div className="qr-preview">
-            <span>QR</span>
-          </div>
-
-          <p className="qr-url">{qrUrl}</p>
-        </article>
+        <StationQrCard
+          stationCode={station.code}
+          laboratoryName={station.laboratories?.name ?? 'Laboratorio sin nombre'}
+          qrUrl={qrUrl}
+        />
       </div>
 
       <div className="equipment-grid">
