@@ -1,14 +1,24 @@
 import { Route, Routes } from 'react-router-dom'
-import AppLayout from './layouts/AppLayout'
 import PlaceholderPage from './components/PlaceholderPage'
+import ProtectedRoute from './features/auth/ProtectedRoute'
+import AppLayout from './layouts/AppLayout'
 import DashboardPage from './pages/DashboardPage'
+import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import StationDetailPage from './pages/StationDetailPage'
 
 function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route path="/iniciar-sesion" element={<LoginPage />} />
+
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
 
         <Route
@@ -22,7 +32,10 @@ function App() {
           }
         />
 
-        <Route path="estaciones/:stationId" element={<StationDetailPage />} />
+        <Route
+          path="estaciones/:stationId"
+          element={<StationDetailPage />}
+        />
 
         <Route
           path="escanear"
@@ -63,13 +76,13 @@ function App() {
             <PlaceholderPage
               title="Configuración"
               description="Aquí vivirán los catálogos de laboratorios, usuarios, roles y opciones generales del sistema."
-              nextStep="Este módulo se habilitará cuando agreguemos autenticación y permisos."
+              nextStep="Este módulo se habilitará cuando agreguemos formularios administrativos."
             />
           }
         />
-      </Route>
 
-      <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   )
 }
