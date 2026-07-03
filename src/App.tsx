@@ -5,6 +5,7 @@ import ProtectedRoute from './features/auth/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
+import MovementsPage from './pages/MovementsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import StationDetailPage from './pages/StationDetailPage'
 import StationsPage from './pages/StationsPage'
@@ -55,13 +56,7 @@ function App() {
 
         <Route
           path="movimientos"
-          element={
-            <PlaceholderPage
-              title="Movimientos"
-              description="Aquí quedará el historial de cambios de ubicación, reemplazos y modificaciones de los equipos."
-              nextStep="Más adelante conectaremos esta vista con la tabla de movimientos en Supabase."
-            />
-          }
+          element={<MovementsPage />}
         />
 
         <Route

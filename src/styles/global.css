@@ -1190,6 +1190,86 @@ h1 {
   margin-top: 1.2rem;
 }
 
+.movements-workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.movement-form {
+  position: sticky;
+  top: 1rem;
+}
+
+.selected-asset-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.8rem;
+  background: #eff6ff;
+}
+
+.selected-asset-card strong {
+  color: #172033;
+}
+
+.selected-asset-card span,
+.selected-asset-card p {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.movements-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.assets-table-panel {
+  padding: 1.15rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
+}
+
+.asset-table {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.asset-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(110px, 0.7fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+}
+
+.asset-row strong {
+  color: #172033;
+}
+
+.asset-row p,
+.asset-row span,
+.asset-row a {
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.asset-row a {
+  font-weight: 800;
+}
+
+.asset-row a:hover {
+  color: #2563eb;
+}
+
 .pending-panel {
   margin-top: 1rem;
 }
@@ -1367,8 +1447,13 @@ h1 {
   .stations-workspace,
   .detail-grid,
   .station-operations-grid,
-  .scanner-layout {
+  .scanner-layout,
+  .movements-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .movement-form {
+    position: static;
   }
 }
 
@@ -1411,6 +1496,11 @@ h1 {
   .scanner-buttons .primary-button,
   .scanner-buttons .secondary-button {
     width: 100%;
+  }
+
+  .asset-row {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
   }
 }
 
