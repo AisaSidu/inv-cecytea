@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import PlaceholderPage from './components/PlaceholderPage'
 import ProtectedRoute from './features/auth/ProtectedRoute'
@@ -7,6 +8,8 @@ import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import StationDetailPage from './pages/StationDetailPage'
 import StationsPage from './pages/StationsPage'
+
+const ScannerPage = lazy(() => import('./pages/ScannerPage'))
 
 function App() {
   return (
@@ -35,11 +38,18 @@ function App() {
         <Route
           path="escanear"
           element={
-            <PlaceholderPage
-              title="Escanear código QR"
-              description="Desde aquí se abrirá la cámara del dispositivo para consultar rápidamente una estación o equipo."
-              nextStep="Después integraremos el lector QR y las rutas directas a cada estación."
-            />
+            <Suspense
+              fallback={
+                <main className="auth-loading">
+                  <div className="auth-loading-card">
+                    <span className="status-dot" />
+                    Cargando escáner...
+                  </div>
+                </main>
+              }
+            >
+              <ScannerPage />
+            </Suspense>
           }
         />
 
