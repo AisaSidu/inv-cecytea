@@ -920,6 +920,12 @@ h1 {
   background: #f0f9ff;
 }
 
+.inline-message-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

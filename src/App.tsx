@@ -9,6 +9,8 @@ import MovementsPage from './pages/MovementsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import StationDetailPage from './pages/StationDetailPage'
 import StationsPage from './pages/StationsPage'
+import ReportesPage from './pages/ReportesPage'
+import ConfiguracionPage from './pages/ConfigPage'
 
 const ScannerPage = lazy(() => import('./pages/ScannerPage'))
 
@@ -61,24 +63,12 @@ function App() {
 
         <Route
           path="reportes"
-          element={
-            <PlaceholderPage
-              title="Reportes"
-              description="Desde este módulo se generarán inventarios y reportes descargables en PDF o Excel."
-              nextStep="Los archivos se generarán al momento; no será necesario guardarlos en la base de datos."
-            />
-          }
+          element={<ReportesPage />}
         />
 
         <Route
           path="configuracion"
-          element={
-            <PlaceholderPage
-              title="Configuración"
-              description="Aquí vivirán los catálogos de laboratorios, usuarios, roles y opciones generales del sistema."
-              nextStep="Este módulo se habilitará cuando agreguemos formularios administrativos."
-            />
-          }
+          element={<ConfiguracionPage />}
         />
 
         <Route path="*" element={<NotFoundPage />} />

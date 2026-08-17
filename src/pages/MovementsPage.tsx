@@ -180,19 +180,25 @@ function getNextMovementState(
 }
 
 function MovementsPage() {
-  const { user } = useAuth()
+  const { user, canWriteInventory } = useAuth()
   const [assets, setAssets] = useState<Asset[]>([])
   const [stations, setStations] = useState<Station[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
+  
   const [selectedAssetId, setSelectedAssetId] = useState('')
   const [selectedAction, setSelectedAction] = useState<MovementAction>('transfer')
   const [targetStationId, setTargetStationId] = useState('')
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
+  
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [pageMessage, setPageMessage] = useState('')
   const [loadError, setLoadError] = useState('')
+
+  // NUEVOS ESTADOS: Control de pestañas y búsqueda
+  const [activeTab, setActiveTab] = useState<'directory' | 'movement'>('directory')
+  const [searchQuery, setSearchQuery] = useState('')
 
   async function fetchMovementData() {
     const [assetsResult, stationsResult, movementsResult] = await Promise.all([
@@ -294,9 +300,28 @@ function MovementsPage() {
     )
   }, [assets, selectedAsset, targetStationId])
 
+  // Lógica de filtrado de activos
+  const filteredAssets = useMemo(() => {
+    if (!searchQuery.trim()) return assets
+    const query = searchQuery.toLowerCase()
+    return assets.filter(
+      (asset) =>
+        asset.asset_code.toLowerCase().includes(query) ||
+        asset.brand?.toLowerCase().includes(query) ||
+        asset.serial_number?.toLowerCase().includes(query) ||
+        asset.stations?.code.toLowerCase().includes(query) ||
+        statusLabels[asset.status].toLowerCase().includes(query)
+    )
+  }, [assets, searchQuery])
+
   async function handleCreateMovement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setPageMessage('')
+
+    if (!canWriteInventory) {
+      setPageMessage('No tienes permisos para realizar movimientos.')
+      return
+    }
 
     if (!selectedAsset) {
       setPageMessage('Selecciona un activo para registrar el movimiento.')
@@ -360,6 +385,8 @@ function MovementsPage() {
     setReason('')
     setNotes('')
     setPageMessage('Movimiento registrado correctamente.')
+    // Tras un movimiento exitoso, podemos devolverlo a la pestaña del directorio
+    setActiveTab('directory')
     void loadData()
   }
 
@@ -367,16 +394,15 @@ function MovementsPage() {
     <section className="movements-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Trazabilidad</p>
-          <h2>Movimientos</h2>
+          <p className="eyebrow">Gestión y Trazabilidad</p>
+          <h2>Equipos y Movimientos</h2>
           <p>
-            Transfiere equipos entre estaciones, libera activos para almacén,
-            registra mantenimiento o marca incidentes sin perder historial.
+            Consulta el catálogo general de equipos y gestiona sus traslados, mantenimientos o bajas de forma centralizada.
           </p>
         </div>
 
         <button className="secondary-button" type="button" onClick={() => void loadData()}>
-          Actualizar
+          Actualizar datos
         </button>
       </div>
 
@@ -392,182 +418,244 @@ function MovementsPage() {
         </div>
       )}
 
-      <div className="movements-workspace">
-        <form className="data-form movement-form" onSubmit={handleCreateMovement}>
-          <div className="form-heading">
-            <p className="eyebrow">Nuevo movimiento</p>
-            <h3>Actualizar activo</h3>
-          </div>
-
-          <label>
-            Activo
-            <select
-              value={selectedAssetId}
-              onChange={(event) => setSelectedAssetId(event.target.value)}
-              required
-            >
-              <option value="">Selecciona activo</option>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.asset_code} - {assetTypeLabels[asset.asset_type]} - {statusLabels[asset.status]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {selectedAsset && (
-            <div className="selected-asset-card">
-              <strong>{selectedAsset.asset_code}</strong>
-              <span>{assetTypeLabels[selectedAsset.asset_type]}</span>
-              <p>
-                {selectedAsset.stations?.code ?? 'Sin estación'} · {statusLabels[selectedAsset.status]}
-              </p>
-            </div>
-          )}
-
-          <label>
-            Operación
-            <select
-              value={selectedAction}
-              onChange={(event) => setSelectedAction(event.target.value as MovementAction)}
-            >
-              {Object.entries(actionLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {selectedAction === 'transfer' && (
-            <label>
-              Estación destino
-              <select
-                value={targetStationId}
-                onChange={(event) => setTargetStationId(event.target.value)}
-                required
-              >
-                <option value="">Selecciona estación</option>
-                {stations.map((station) => (
-                  <option key={station.id} value={station.id}>
-                    {station.code} - {station.laboratories?.name ?? 'Laboratorio sin nombre'}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {targetStationHasSameAssetType && selectedAction === 'transfer' && (
-            <p className="form-error" role="alert">
-              La estación destino ya tiene {selectedAsset ? assetTypeLabels[selectedAsset.asset_type] : 'equipo'}.
-            </p>
-          )}
-
-          <label>
-            Motivo
-            <input
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Cambio de estación, revisión, baja, pérdida"
-            />
-          </label>
-
-          <label>
-            Notas
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Detalles del movimiento, evidencia o responsable"
-              rows={3}
-            />
-          </label>
-
-          <button className="primary-button" type="submit" disabled={isSaving || isLoading}>
-            {isSaving ? 'Guardando...' : 'Registrar movimiento'}
+      {/* PESTAÑAS DE NAVEGACIÓN */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+        <button
+          type="button"
+          className={activeTab === 'directory' ? 'primary-button' : 'secondary-button'}
+          onClick={() => setActiveTab('directory')}
+          style={{ padding: '8px 24px' }}
+        >
+          Catálogo de equipos
+        </button>
+        {canWriteInventory && (
+          <button
+            type="button"
+            className={activeTab === 'movement' ? 'primary-button' : 'secondary-button'}
+            onClick={() => setActiveTab('movement')}
+            style={{ padding: '8px 24px' }}
+          >
+            Mover equipo
           </button>
-        </form>
+        )}
+      </div>
 
-        <section className="movements-content">
-          <div className="assets-table-panel">
-            <div className="panel-heading split-heading">
-              <div>
-                <p className="eyebrow">Activos</p>
-                <h3>{isLoading ? 'Cargando activos' : `${assets.length} equipos`}</h3>
+      <div className="movements-workspace">
+        {/* COLUMNA PRINCIPAL (Izquierda) */}
+        <div className="movements-content" style={{ flex: '1 1 60%' }}>
+          
+          {/* VISTA 1: DIRECTORIO DE ACTIVOS */}
+          {activeTab === 'directory' && (
+            <div className="assets-table-panel panel">
+              <div className="panel-heading split-heading" style={{ alignItems: 'center' }}>
+                <div>
+                  <p className="eyebrow">Activos</p>
+                  <h3>{isLoading ? 'Cargando activos...' : `${filteredAssets.length} equipos`}</h3>
+                </div>
+                {/* BUSCADOR */}
+                <div style={{ minWidth: '250px' }}>
+                  <input
+                    type="search"
+                    placeholder="Buscar serie, código, marca o estado..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
+              </div>
+
+              <div className="asset-table" style={{ marginTop: '16px' }}>
+                {assets.length === 0 && !isLoading ? (
+                  <div className="empty-list">
+                    <strong>No hay activos registrados</strong>
+                    <p>Asigna un CPU o monitor desde la ficha de una estación.</p>
+                  </div>
+                ) : filteredAssets.length === 0 ? (
+                  <div className="empty-list">
+                    <strong>Sin resultados</strong>
+                    <p>No se encontraron equipos que coincidan con tu búsqueda.</p>
+                  </div>
+                ) : (
+                  filteredAssets.map((asset) => (
+                    <article key={asset.id} className="asset-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid #e2e8f0', alignItems: 'center' }}>
+                      <div style={{ flex: '1' }}>
+                        <strong style={{ fontSize: '1.1rem' }}>{asset.asset_code}</strong>
+                        <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                          {assetTypeLabels[asset.asset_type]} · {asset.brand ?? 'Sin marca'} {asset.model ?? ''}
+                          <br />
+                          <small>Serie: {asset.serial_number ?? 'N/A'}</small>
+                        </p>
+                      </div>
+
+                      <div style={{ flex: '1', textAlign: 'center' }}>
+                        {asset.station_id ? (
+                          <Link to={`/estaciones/${asset.station_id}`} style={{ fontWeight: '500' }}>
+                            {asset.stations?.code ?? 'Estación'}
+                          </Link>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>En almacén / Sin estación</span>
+                        )}
+                      </div>
+
+                      <div style={{ flex: '0 0 auto', textAlign: 'right' }}>
+                        <span className={`status-pill status-${asset.status}`}>
+                          {statusLabels[asset.status]}
+                        </span>
+                      </div>
+                    </article>
+                  ))
+                )}
               </div>
             </div>
+          )}
 
-            <div className="asset-table">
-              {assets.length === 0 && !isLoading ? (
-                <div className="empty-list">
-                  <strong>No hay activos registrados</strong>
-                  <p>Registra CPU o monitores desde el detalle de una estación.</p>
+          {/* VISTA 2: FORMULARIO DE MOVIMIENTO */}
+          {activeTab === 'movement' && canWriteInventory && (
+            <form className="data-form movement-form panel" onSubmit={handleCreateMovement}>
+              <div className="form-heading">
+                <p className="eyebrow">Nuevo movimiento</p>
+                <h3>Actualizar estado de activo</h3>
+              </div>
+
+              <label>
+                Seleccionar equipo
+                <select
+                  value={selectedAssetId}
+                  onChange={(event) => setSelectedAssetId(event.target.value)}
+                  required
+                >
+                  <option value="">Selecciona activo</option>
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.asset_code} - {assetTypeLabels[asset.asset_type]} - {statusLabels[asset.status]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {selectedAsset && (
+                <div className="selected-asset-card" style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                  <strong style={{ display: 'block', fontSize: '1.1rem' }}>{selectedAsset.asset_code}</strong>
+                  <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{assetTypeLabels[selectedAsset.asset_type]}</span>
+                  <p style={{ margin: '8px 0 0 0', fontWeight: '500' }}>
+                    {selectedAsset.stations?.code ?? 'Almacén central'} · <span className={`status-pill status-${selectedAsset.status}`} style={{ display: 'inline-block', marginLeft: '8px' }}>{statusLabels[selectedAsset.status]}</span>
+                  </p>
                 </div>
-              ) : (
-                assets.map((asset) => (
-                  <article key={asset.id} className="asset-row">
-                    <div>
-                      <strong>{asset.asset_code}</strong>
-                      <p>
-                        {assetTypeLabels[asset.asset_type]} · {asset.brand ?? 'Sin marca'} {asset.model ?? ''}
-                      </p>
-                    </div>
-
-                    <div>
-                      {asset.station_id ? (
-                        <Link to={`/estaciones/${asset.station_id}`}>
-                          {asset.stations?.code ?? 'Estación'}
-                        </Link>
-                      ) : (
-                        <span>Sin estación</span>
-                      )}
-                    </div>
-
-                    <span className={`status-pill status-${asset.status}`}>
-                      {statusLabels[asset.status]}
-                    </span>
-                  </article>
-                ))
               )}
-            </div>
-          </div>
 
+              <label>
+                Operación a realizar
+                <select
+                  value={selectedAction}
+                  onChange={(event) => setSelectedAction(event.target.value as MovementAction)}
+                >
+                  {Object.entries(actionLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {selectedAction === 'transfer' && (
+                <label>
+                  Estación destino
+                  <select
+                    value={targetStationId}
+                    onChange={(event) => setTargetStationId(event.target.value)}
+                    required
+                  >
+                    <option value="">Selecciona estación</option>
+                    {stations.map((station) => (
+                      <option key={station.id} value={station.id}>
+                        {station.code} - {station.laboratories?.name ?? 'Laboratorio sin nombre'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {targetStationHasSameAssetType && selectedAction === 'transfer' && (
+                <p className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.9rem', marginTop: '-10px', marginBottom: '16px' }}>
+                  ⚠️ La estación destino ya tiene {selectedAsset ? assetTypeLabels[selectedAsset.asset_type] : 'equipo'} asignado.
+                </p>
+              )}
+
+              <label>
+                Motivo del movimiento
+                <input
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="Ej. Cambio por falla, reasignación, baja de ciclo..."
+                />
+              </label>
+
+              <label>
+                Notas adicionales
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Evidencia o responsable de la autorización"
+                  rows={3}
+                />
+              </label>
+
+              <button className="primary-button" type="submit" disabled={isSaving || isLoading}>
+                {isSaving ? 'Guardando cambios...' : 'Confirmar movimiento'}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* COLUMNA LATERAL (Derecha) - Siempre visible */}
+        <div className="movements-sidebar" style={{ flex: '1 1 35%' }}>
           <div className="panel">
             <div className="panel-heading">
-              <p className="eyebrow">Historial</p>
+              <p className="eyebrow">Bitácora</p>
               <h3>Últimos movimientos</h3>
             </div>
 
             {movements.length === 0 ? (
               <div className="empty-list">
-                <strong>Sin movimientos registrados</strong>
-                <p>Cuando cambies un equipo, el rastro aparecerá aquí.</p>
+                <strong>Sin historial</strong>
+                <p>El rastro de cambios de equipos aparecerá aquí.</p>
               </div>
             ) : (
-              <div className="movement-list">
+              <div className="movement-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {movements.map((movement) => (
-                  <div key={movement.id} className="movement-row">
-                    <strong>
-                      {movement.assets?.asset_code ?? 'Activo'} ·{' '}
+                  <div key={movement.id} className="movement-row" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <strong style={{ color: '#0f172a' }}>
+                        {movement.assets?.asset_code ?? 'Activo'}
+                      </strong>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                        {new Date(movement.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#3b82f6', textTransform: 'uppercase' }}>
                       {movement.assets ? assetTypeLabels[movement.assets.asset_type] : 'Equipo'}
-                    </strong>
-                    <span>{new Date(movement.created_at).toLocaleString()}</span>
-                    <p>
+                    </span>
+
+                    <p style={{ margin: '4px 0', fontSize: '0.95rem', color: '#334155' }}>
                       {movement.reason ?? movement.movement_type}
-                      {' · '}
-                      {movement.from_station_id
-                        ? stationById[movement.from_station_id]?.code ?? 'Origen'
-                        : 'Sin origen'}
-                      {' → '}
-                      {movement.to_station_id
-                        ? stationById[movement.to_station_id]?.code ?? 'Destino'
-                        : 'Sin destino'}
+                    </p>
+                    
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        {movement.from_station_id ? stationById[movement.from_station_id]?.code ?? 'Origen' : 'Almacén'}
+                      </span>
+                      →
+                      <span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                        {movement.to_station_id ? stationById[movement.to_station_id]?.code ?? 'Destino' : 'Almacén'}
+                      </span>
                     </p>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </section>
+        </div>
       </div>
     </section>
   )
