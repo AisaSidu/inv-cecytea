@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import PlaceholderPage from './components/PlaceholderPage'
+//import PlaceholderPage from './components/PlaceholderPage'
 import ProtectedRoute from './features/auth/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
 import DashboardPage from './pages/DashboardPage'
