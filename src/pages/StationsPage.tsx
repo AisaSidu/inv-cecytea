@@ -419,7 +419,7 @@ function StationsPage() {
                     <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
                       {station.laboratories?.name ?? 'Laboratorio sin nombre'}
                       <br />
-                      {station.location_label ? `📍 ${station.location_label}` : '📍 Sin ubicación específica'}
+                      {station.location_label ? `▶ ${station.location_label}` : '📍 Sin ubicación específica'}
                     </p>
                   </div>
 
