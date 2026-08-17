@@ -1449,94 +1449,133 @@ h1 {
   line-height: 1.45;
 }
 
-@media (max-width: 980px) {
-  .stations-workspace,
-  .detail-grid,
-  .station-operations-grid,
-  .scanner-layout,
-  .movements-workspace {
-    grid-template-columns: 1fr;
+/* =========================================================
+   DISEÑO MÓVIL Y TABLETS (RESPONSIVE)
+   ========================================================= */
+@media (max-width: 850px) {
+  /* 1. Quitamos la estructura de columnas y dejamos espacio abajo */
+  .app-shell {
+    display: block;
+    padding-bottom: 76px; /* Espacio vital para que el menú no tape el contenido */
   }
 
-  .movement-form {
-    position: static;
-  }
-}
-
-@media (max-width: 1120px) {
-  .peripheral-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .equipment-grid,
-  .form-row,
-  .peripheral-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 620px) {
-  .page-heading,
-  .station-row,
-  .split-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .station-row .secondary-button,
-  .page-heading .secondary-button {
-    width: 100%;
-  }
-
-  .detail-list div {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
-
-  .scanner-controls {
-    grid-template-columns: 1fr;
-  }
-
-  .scanner-buttons .primary-button,
-  .scanner-buttons .secondary-button {
-    width: 100%;
-  }
-
-  .asset-row {
-    grid-template-columns: 1fr;
-    gap: 0.55rem;
-  }
-}
-
-@media print {
-  @page {
-    margin: 10mm;
-    size: auto;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .qr-print-area,
-  .qr-print-area * {
-    visibility: visible;
-  }
-
-  .qr-print-area {
+  /* 2. Convertimos el Menú Lateral en una Barra Inferior (Bottom Nav) */
+  .sidebar {
     position: fixed;
-    top: 0;
+    top: auto;
+    bottom: 0;
     left: 0;
+    right: 0;
+    height: 76px;
+    width: 100%;
+    padding: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #1e293b;
+    background: #0f172a;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Ocultamos los logos y textos innecesarios en el móvil */
+  .brand, 
+  .sidebar-section-label, 
+  .sidebar-footer {
+    display: none;
+  }
+
+  /* 3. Acomodamos los 6 botones en una fila perfecta */
+  .sidebar-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    padding: 0 4px;
     margin: 0;
   }
 
-  .qr-label {
-    width: 70mm;
-    padding: 5mm;
-    border: 1px solid #111827;
-    border-radius: 0;
-    box-shadow: none;
+  .nav-link {
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 2px;
+    border-radius: 8px;
+    background: transparent !important; /* Evita cuadros raros de fondo */
+    text-align: center;
+  }
+
+  .nav-link:hover { 
+    transform: none; 
+  }
+
+  .nav-link-active {
+    color: #60a5fa !important; /* Azul más brillante para resaltar el icono activo */
+  }
+
+  .nav-icon { 
+    font-size: 1.4rem; 
+  }
+
+  .nav-label {
+    font-size: 0.62rem;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 4. Barra Superior (Topbar) más compacta */
+  .topbar {
+    min-height: auto;
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .topbar h1 { 
+    font-size: 1.15rem; 
+  }
+  
+  .signed-in-as { 
+    display: none; /* Ocultamos el correo largo para ahorrar espacio */
+  }
+
+  /* El botón gigante de QR se vuelve un pequeño botón cuadrado */
+  .scan-button {
+    font-size: 0;
+    padding: 0.65rem 0.8rem;
+    min-height: auto;
+  }
+  .scan-button span { 
+    font-size: 1.3rem; 
+  }
+
+  .logout-button {
+    padding: 0.65rem 0.8rem;
+    font-size: 0.8rem;
+    min-height: auto;
+  }
+
+  /* 5. Ajustes de espaciado general */
+  .page-content {
+    padding: 1.25rem 1rem;
+  }
+
+  .stats-grid,
+  .equipment-grid,
+  .form-row,
+  .peripheral-grid,
+  .station-operations-grid {
+    grid-template-columns: 1fr; /* Todo en 1 sola columna para el teléfono */
+  }
+  
+  .welcome-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .welcome-card .primary-button {
+    width: 100%;
   }
 }
